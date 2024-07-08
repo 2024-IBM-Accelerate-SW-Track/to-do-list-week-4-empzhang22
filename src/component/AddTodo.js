@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import { Button, TextField } from "@mui/material";
 import { DesktopDatePicker , LocalizationProvider} from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import Axios from "axios";
 
 class AddTodo extends Component {
   // Create a local react state of the this component with both content date property set to nothing.
@@ -19,17 +20,14 @@ class AddTodo extends Component {
   handleChange = (event) => {
     this.setState({
       content: event.target.value,
-      date: Date()
+      date: Date().toLocaleString('en-US')
     });
   };
-
-  handleDateChange = (event) => {
-    let date = null
-    if(event != null){
-      date = new Date(event)
-    }
+  // The handleDueDateChange function updates the react state with the new due date input value provided from the user.
+  // "event" is the defined action a user takes.
+  handleDueDateChange = (event) => {
     this.setState({
-      duedate: date
+      duedate: new Date(event).toLocaleDateString()
     });
   };
   // The handleSubmit function collects the forms input and puts it into the react state.
@@ -39,6 +37,28 @@ class AddTodo extends Component {
   handleSubmit = (event) => {
     event.preventDefault();
     if (this.state.content.trim()) {
+      const jsonObject = {
+        id: Date.now(), // Assuming you need a unique ID for each task
+        task: this.state.content,
+        currentDate: this.state.date,
+        dueDate: this.state.duedate
+      };
+
+      Axios({
+        method: "POST",
+        url: "http://localhost:4040/add/item",
+        data: jsonObject,
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }).then(res => {
+        console.log(res.data.message);
+        // Optionally, handle success message here, e.g., display a notification
+      }).catch(error => {
+        console.error("There was an error adding the task!", error);
+        // Optionally, handle error message here, e.g., display an error notification
+      });
+
       this.props.addTodo(this.state);
       this.setState({
         content: "",
@@ -47,6 +67,7 @@ class AddTodo extends Component {
       });
     }
   };
+  
   render() {
     return (
       // 1. When rendering a component, you can render as many elements as you like as long as it is wrapped inside
@@ -58,21 +79,23 @@ class AddTodo extends Component {
       // 4. The value of the text field also should reflect the local state of this component.
       <div>
         <TextField
+          data-testid="new-item-input"
           label="Add New Item"
           variant="outlined"
           onChange={this.handleChange}
           value={this.state.content}
         />
         <LocalizationProvider dateAdapter={AdapterDateFns}>         
-          <DesktopDatePicker
-              id="new-item-date"
-              label="Due Date"
-              value={this.state.duedate}
-              onChange={this.handleDateChange}
-              renderInput={(params) => <TextField {...params} />}
-          />
+        	<DesktopDatePicker
+          	id="new-item-date"
+            label="Due Date"
+            value={this.state.duedate}
+            onChange={this.handleDueDateChange}
+            renderInput={(params) => <TextField {...params} />}
+        	/>
         </LocalizationProvider>
         <Button
+          data-testid="new-item-button"
           style={{ marginLeft: "10px" }}
           onClick={this.handleSubmit}
           variant="contained"
